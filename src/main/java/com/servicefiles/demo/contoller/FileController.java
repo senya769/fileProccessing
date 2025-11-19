@@ -2,12 +2,10 @@ package com.servicefiles.demo.contoller;
 
 import java.io.File;
 
-import org.springframework.http.HttpStatusCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.servicefiles.demo.config.GeneratorConfig;
 import com.servicefiles.demo.service.FileGenerationService;
@@ -17,6 +15,8 @@ import com.servicefiles.demo.service.MergerService;
 @RestController
 @RequestMapping("/api/files")
 public class FileController {
+
+    private static final Logger logger = LoggerFactory.getLogger(FileController.class);
 
     private final FileGenerationService fileGenerationService;
     private final MergerService mergerService;
@@ -36,19 +36,52 @@ public class FileController {
     @PostMapping("/generate")
     public ResponseEntity<String> generateFiles() {
         fileGenerationService.generateFiles();
-        return new ResponseEntity("Файлы сгеренированы успешно",HttpStatusCode.valueOf(200));
+        return ResponseEntity.ok("Файлы сгенерированы успешно.");
     }
 
     @PostMapping("/merge")
-    public ResponseEntity mergeFiles(@RequestParam(required = false) String remove) {
+    public ResponseEntity<String> mergeFiles(
+            @RequestParam(required = false) String remove) {
+
+        File outputDir = new File(config.getOutputDir());
+        if (!outputDir.exists()) {
+            return ResponseEntity.badRequest().body("Папка с файлами не найдена.");
+        }
+
         File mergedFile = new File("merged.txt");
-        mergerService.mergeFiles(new File(config.getOutputDir()), mergedFile, remove);
-        return new ResponseEntity("Файл объединен успешно",HttpStatusCode.valueOf(200));
+
+        try {
+            mergerService.mergeFiles(outputDir, mergedFile, remove);
+        } catch (Exception e) {
+            logger.error("Ошибка при объединении файлов", e);
+            return ResponseEntity.internalServerError().body("Ошибка при объединении файлов.");
+        }
+
+        return ResponseEntity.ok("Файл объединён успешно.");
     }
 
     @PostMapping("/import")
-    public ResponseEntity importFiles(@RequestParam(required = false) String fileName) {
-        importerService.importFile(new File(config.getOutputDir() +"/"+ fileName));
-        return new ResponseEntity("Файл импортирован в БД успешно",HttpStatusCode.valueOf(200));
+    public ResponseEntity<String> importFile(
+            @RequestParam(required = true) String fileName) {
+
+        if (fileName == null || fileName.isBlank()) {
+            return ResponseEntity.badRequest().body("Имя файла не указано.");
+        }
+
+        File file = new File(config.getOutputDir(), fileName);
+
+        if (!file.exists()) {
+            return ResponseEntity.status(404)
+                    .body("Файл не найден: " + file.getAbsolutePath());
+        }
+
+        try {
+            importerService.importFile(file);
+        } catch (Exception e) {
+            logger.error("Ошибка импорта файла", e);
+            return ResponseEntity.internalServerError().body("Ошибка при импорте файла.");
+        }
+
+        return ResponseEntity.ok("Файл импортирован успешно.");
     }
 }
