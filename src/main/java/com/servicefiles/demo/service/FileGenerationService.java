@@ -16,6 +16,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 public class FileGenerationService {
@@ -40,19 +41,24 @@ public class FileGenerationService {
 
     public void generateFiles() {
         File outputDir = new File(config.getOutputDir());
-        if (!outputDir.exists()) {
-            boolean created = outputDir.mkdirs();
-            if (!created) {
-                logger.warn("Не удалось создать директорию: {}", outputDir.getAbsolutePath());
-            }
+
+        if (!outputDir.exists() && !outputDir.mkdirs()) {
+            logger.warn("Не удалось создать директорию: {}", outputDir.getAbsolutePath());
         }
 
-        for (int i = 1; i <= config.getFileCount(); i++) {
-            File file = new File(outputDir, "file_" + i + ".txt");
-            generateFile(file);
-            logger.info("Создан файл: {}", file.getAbsolutePath());
-        }
+        logger.info("Запуск генерации {} файлов...", config.getFileCount());
+
+        IntStream.rangeClosed(1, config.getFileCount())
+                .parallel()  // ← многопоточность
+                .forEach(i -> {
+                    File file = new File(outputDir, "file_" + i + ".txt");
+                    generateFile(file);
+                    logger.info("Создан файл: {}", file.getName());
+                });
+
+        logger.info("Генерация всех файлов завершена.");
     }
+
 
     private void generateFile(File file) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
