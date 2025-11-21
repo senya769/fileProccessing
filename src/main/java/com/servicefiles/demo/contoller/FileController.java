@@ -35,7 +35,6 @@ public class FileController {
 
     @GetMapping("/")
     public ResponseEntity<String> index() {
-        fileGenerationService.generateFiles();
         return ResponseEntity.ok("Hello api/files - /generate /import /merge");
     }
     
@@ -68,7 +67,7 @@ public class FileController {
 
     @PostMapping("/import")
     public ResponseEntity<String> importFile(
-            @RequestParam(required = true) String fileName) {
+            @RequestParam String fileName) {
 
         if (fileName == null || fileName.isBlank()) {
             return ResponseEntity.badRequest().body("Имя файла не указано.");
