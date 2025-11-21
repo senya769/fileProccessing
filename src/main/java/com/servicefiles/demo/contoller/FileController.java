@@ -33,6 +33,12 @@ public class FileController {
         this.config = config;
     }
 
+    @GetMapping("/")
+    public ResponseEntity<String> index() {
+        fileGenerationService.generateFiles();
+        return ResponseEntity.ok("Hello api/files - /generate /import /merge");
+    }
+    
     @PostMapping("/generate")
     public ResponseEntity<String> generateFiles() {
         fileGenerationService.generateFiles();
