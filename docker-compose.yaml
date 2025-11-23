@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  # Сервис приложения (Java/Spring Boot)
+  app:
+    image: senya769/docker-demo-filesystem
+    ports:
+      - "8080:8080"  # Порт приложения (можно изменить)
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/dbfiles  # URL подключения к БД
+      SPRING_DATASOURCE_USERNAME: postgres  # Имя пользователя БД
+      SPRING_DATASOURCE_PASSWORD: root  # Пароль пользователя БД
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update  # Автосоздание схемы
+    depends_on:  # Зависимость от сервиса БД
+      - db
+    restart: unless-stopped  # Перезапуск при падении
+
+  # Сервис PostgreSQL
+  db:
+    image: postgres:13  # Образ PostgreSQL (можно выбрать другую версию)
+    ports:
+      - "5432:5432"  # Экспонирование порта PostgreSQL
+    environment:
+      POSTGRES_DB: dbfiles  # Название БД
+      POSTGRES_USER: postgres  # Пользователь БД
+      POSTGRES_PASSWORD: root  # Пароль пользователя БД
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Персистентность данных
+    restart: unless-stopped  # Перезапуск при падении
+
+volumes:
+  postgres_data:  # Том для хранения данных PostgreSQL (не удаляется при остановке контейнера)
